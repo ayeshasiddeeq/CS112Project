@@ -63,7 +63,6 @@ public:
     void addRecipe();
     void addRecipe(string name, string instructions);
     void HardcodedRecipes();
-    void DisplayAllRecipes();
 
 };
 
@@ -104,8 +103,7 @@ void Menu(AlphabeticListing& al) {
         cout << "\n===== Recipe Manager =====\n";
         cout << "  Total recipes : " << Recipe::numrecipes << "\n";
         cout << "  1. Add recipe (user input)\n";
-        cout << "  2. Display all recipes\n";
-        cout << "  3. Display recipes alphabetically\n";
+        cout << "  2. Display all recipes \n";
         cout << "  0. Exit\n";
         cout << "Choice: ";
         cin >> choice;
@@ -113,8 +111,7 @@ void Menu(AlphabeticListing& al) {
 
         switch (choice) {
             case 1: al.addRecipe();               break;
-            case 2: al.DisplayAllRecipes();       break;
-            case 3: al.DisplayAlphabetically();   break;
+            case 2: al.DisplayAlphabetically();       break;
             case 0:
                 cout << "Goodbye!\n";
                 break;
@@ -282,16 +279,6 @@ void HardcodedRecipes() {
      */
 }
 
-void RecipeManager::DisplayAllRecipes() {
-    if (stored_recipes==0) {
-        cout<<"No recipes stored yet. \n";
-        return;
-    }
-    cout<<"\t---All recipes---\n";
-    for (int i = 0; i<stored_recipes;i++) {
-        cout<<recipes[i];
-    }
-}
 
 
 
