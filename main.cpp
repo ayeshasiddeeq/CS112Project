@@ -64,7 +64,7 @@ public:
     void increaseCapacity();
     void addRecipe();
     void addRecipe(string name, string instructions,int time);
-    void HardcodedRecipes();
+    void HardcodeRecipes();
     int getStoredCount() { return stored_recipes; }
     Recipe& getRecipeAt(int i) { return recipes[i]; }
 
@@ -83,7 +83,6 @@ public:
         }
         for (int i = 0; i < stored_recipes; i++) {
             int minIndex = -1;
-
 
             for (int k = 0; k < stored_recipes; k++) {
                 if (!visited[k]) {
@@ -225,9 +224,6 @@ public:
         rankAndDisplay();
     }
 };
-
-void HardcodeRecipes() {
-}
 void Menu(AlphabeticListing& al, RecipeRanker& rank) {
     int choice;
     do {
@@ -259,7 +255,11 @@ void Menu(AlphabeticListing& al, RecipeRanker& rank) {
 int main() {
     AlphabeticListing al;
     RecipeRanker ranker;
+    RecipeManager manager;
+    manager.HardcodeRecipes();
     Menu(al,ranker);
+
+
     return 0;
 }
 
@@ -412,16 +412,92 @@ void RecipeManager::addRecipe(string name, string instructions, int time) {
     Recipe::numrecipes++;
 }
 
-void HardcodedRecipes() {
-    /*hardcode recipes into this
-     *use this format
-     *addRecipe(name,instructions)
-     *addIngredientToRecipe(index,name, quantity, quantity type)
-     *add more ingredients ust like this
-     *repeat for as many recipes as required
-     */
+void RecipeManager::HardcodeRecipes() {
+    addRecipe("Spaghetti Aglio e Olio","Boil spaghetti in salted water until al dente. In a pan, heat olive oil, sauté sliced garlic until golden. Add chili flakes. Toss cooked spaghetti in the oil mixture. Add salt and parsley. Serve hot.",25);
+    recipes[stored_recipes-1].setIngredient("Spaghetti", 200, "grams");
+    recipes[stored_recipes-1].setIngredient("Garlic",4,"cloves");
+    recipes[stored_recipes-1].setIngredient("Olive Oil",3,"tbsp");
+    recipes[stored_recipes-1].setIngredient("Red Chilli Flakes",1,"tsp");
+    recipes[stored_recipes-1].setIngredient("Salt",1,"tsp");
+    recipes[stored_recipes-1].setIngredient("Parsley",2,"tbsp");
+
+    addRecipe("Chicken Karahi","Heat oil, add chicken and cook until color changes. Add ginger-garlic paste. Add tomatoes and spices. Cook until oil separates. Garnish with green chilies and coriander.",50);
+    recipes[stored_recipes-1].setIngredient("Chicken", 500, "grams");
+    recipes[stored_recipes-1].setIngredient("Tomatoes",3,"pieces");
+    recipes[stored_recipes-1].setIngredient("Garlic",1,"tbsp");
+    recipes[stored_recipes-1].setIngredient("Ginger",1,"tbsp");
+    recipes[stored_recipes-1].setIngredient("Oil",4,"tbsp");
+    recipes[stored_recipes-1].setIngredient("Red Chilli Powder",1,"tsp");
+    recipes[stored_recipes-1].setIngredient("Salt",1,"tsp");
+    recipes[stored_recipes-1].setIngredient("Green Chillies",2,"tbsp");
+
+    addRecipe("Teriyaki Chicken","Mix soy sauce, honey, garlic, and ginger. Marinate chicken for 20 minutes. Cook chicken in pan until golden. Pour sauce and simmer until thick.",30);
+    recipes[stored_recipes-1].setIngredient("Chicken Breast", 300, "grams");
+    recipes[stored_recipes-1].setIngredient("Garlic",2,"cloves");
+    recipes[stored_recipes-1].setIngredient("Oil",2,"tbsp");
+    recipes[stored_recipes-1].setIngredient("Soy Sauce",4,"tbsp");
+    recipes[stored_recipes-1].setIngredient("Ginger",1,"tsp");
+    recipes[stored_recipes-1].setIngredient("Honey",2,"tbsp");
+
+    addRecipe("Chicken Taco","Cook chicken with seasoning. Warm tortillas. Fill with chicken, veggies, and cheese. Serve fresh.",30);
+    recipes[stored_recipes-1].setIngredient("Chicken", 250, "grams");
+    recipes[stored_recipes-1].setIngredient("Onion",1,"piece");
+    recipes[stored_recipes-1].setIngredient("Tomato",1,"piece");
+    recipes[stored_recipes-1].setIngredient("Lettuce",1,"cup");
+    recipes[stored_recipes-1].setIngredient("Oil",3,"tbsp");
+    recipes[stored_recipes-1].setIngredient("Cheese",1,"cup");
+    recipes[stored_recipes-1].setIngredient("Taco Seasoning",1,"tbsp");
+    recipes[stored_recipes-1].setIngredient("Tortilla",4,"pieces");
+
+    addRecipe("Egg Fried Rice","Heat oil, scramble eggs. Add vegetables, then rice. Add soy sauce and salt. Stir fry on high heat.",25);
+    recipes[stored_recipes-1].setIngredient("Boiled rice", 2, "cups");
+    recipes[stored_recipes-1].setIngredient("Eggs",2,"pieces");
+    recipes[stored_recipes-1].setIngredient("Oil",2,"tbsp");
+    recipes[stored_recipes-1].setIngredient("Carrot",1,"cup");
+    recipes[stored_recipes-1].setIngredient("Salt",1,"tsp");
+    recipes[stored_recipes-1].setIngredient("Soy sauce",2,"tbsp");
+
+    addRecipe("Butter Chicken","Marinate chicken in yogurt and spices. Cook chicken. Prepare tomato gravy with butter and spices. Add chicken and cream. Simmer.",60);
+    recipes[stored_recipes-1].setIngredient("Chicken", 500, "grams");
+    recipes[stored_recipes-1].setIngredient("Yoghurt",1,"cup");
+    recipes[stored_recipes-1].setIngredient("Tomato puree",1,"cup");
+    recipes[stored_recipes-1].setIngredient("Butter", 3, "tbsp");
+    recipes[stored_recipes-1].setIngredient("Cream",1,"cup");
+    recipes[stored_recipes-1].setIngredient("Red Chilli Powder",1,"tsp");
+    recipes[stored_recipes-1].setIngredient("Salt",1,"tsp");
+    recipes[stored_recipes-1].setIngredient("Garam masala",1,"tsp");
+
+    addRecipe("Greek Salad","Chop vegetables. Mix everything in bowl. Add olive oil, lemon juice, and salt. Toss gently.",10);
+    recipes[stored_recipes-1].setIngredient("Feta Cheese", 100, "grams");
+    recipes[stored_recipes-1].setIngredient("Cucumber",1,"piece");
+    recipes[stored_recipes-1].setIngredient("Olive Oil",2,"tbsp");
+    recipes[stored_recipes-1].setIngredient("Tomato",2,"pieces");
+    recipes[stored_recipes-1].setIngredient("Salt",1,"tsp");
+    recipes[stored_recipes-1].setIngredient("Lemon juice",1,"tbsp");
+    recipes[stored_recipes-1].setIngredient("Olives",1,"cup");
+
+    addRecipe("Classic Beef Burger","Grill beef patty. Toast buns. Assemble burger with lettuce, tomato, cheese, and sauces.",35);
+    recipes[stored_recipes-1].setIngredient("Beef patty", 200, "grams");
+    recipes[stored_recipes-1].setIngredient("Burger buns",2,"pieces");
+    recipes[stored_recipes-1].setIngredient("Lettuce",2,"leaves");
+    recipes[stored_recipes-1].setIngredient("Tomato",2,"slices");
+    recipes[stored_recipes-1].setIngredient("Ketchup",1,"tbsp");
+    recipes[stored_recipes-1].setIngredient("Mayonnaise",1,"tbsp");
+    recipes[stored_recipes-1].setIngredient("Cheese slice",1,"piece");
+
+    addRecipe("Hummus","Blend chickpeas, tahini, garlic, lemon juice, and salt. Add olive oil. Blend until smooth.",10);
+    recipes[stored_recipes-1].setIngredient("Chickpeas", 1, "cup");
+    recipes[stored_recipes-1].setIngredient("Garlic",2,"cloves");
+    recipes[stored_recipes-1].setIngredient("Olive Oil",2,"tbsp");
+    recipes[stored_recipes-1].setIngredient("Tahini",2,"tbsp");
+    recipes[stored_recipes-1].setIngredient("Salt",1,"tsp");
+    recipes[stored_recipes-1].setIngredient("Lemon uice",2,"tbsp");
+
+    addRecipe("Crepes","Mix all ingredients into smooth batter. Heat pan and pour thin layer. Cook both sides until golden. Serve with toppings.",25);
+    recipes[stored_recipes-1].setIngredient("Flour", 1, "cup");
+    recipes[stored_recipes-1].setIngredient("Milk",1,"cup");
+    recipes[stored_recipes-1].setIngredient("Eggs",2,"pieces");
+    recipes[stored_recipes-1].setIngredient("Sugar",1,"tbsp");
+    recipes[stored_recipes-1].setIngredient("Salt",1,"tsp");
+    recipes[stored_recipes-1].setIngredient("Butter",2,"tbsp");
 }
-
-
-
-
