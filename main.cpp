@@ -100,6 +100,21 @@ public:
 
         delete[] visited;
     }
+    void syncFrom(RecipeManager& source) {
+        // Free old memory
+        delete[] recipes;
+
+        // Allocate new capacity with a buffer
+        recipe_capacity = source.getStoredCount() + 10;
+        recipes = new Recipe[recipe_capacity];   // <-- Correct array allocation
+        stored_recipes = 0;
+
+        // Copy recipes one by one
+        for (int i = 0; i < source.getStoredCount(); i++) {
+            recipes[stored_recipes] = source.getRecipeAt(i);
+            stored_recipes++;
+        }
+    }
 };
 class RecipeRanker : public RecipeManager {
 private:
@@ -253,15 +268,18 @@ void Menu(AlphabeticListing& al, RecipeRanker& rank) {
 }
 
 int main() {
-    AlphabeticListing al;
-    RecipeRanker ranker;
-    RecipeManager manager;
-    manager.HardcodeRecipes();
-    Menu(al,ranker);
+        RecipeManager manager;
+        manager.HardcodeRecipes();
 
+        AlphabeticListing al;
+        al.syncFrom(manager);   // copy recipes once
 
-    return 0;
-}
+        RecipeRanker ranker;
+        ranker.syncFrom(al);
+
+        Menu(al, ranker);
+        return 0;
+    }
 
 Recipe::Recipe() {
     name="";
