@@ -41,6 +41,7 @@ public:
     void setRecipe(string name, string instructions);
     void setIngredient();
     void setIngredient(string name, int quantity, string quantity_type);
+    string getName(){return name;}
 
     int getIngredientCount();
 
@@ -49,6 +50,7 @@ public:
 int Recipe::numrecipes = 0;
 
 class RecipeManager{
+protected:
     Recipe *recipes;
     int recipe_capacity;
     int stored_recipes;
@@ -61,17 +63,67 @@ public:
     void addRecipe();
     void addRecipe(string name, string instructions);
     void HardcodedRecipes();
-    void DisplayAllRecipes();
-    void Menu();
 
+};
+
+class AlphabeticListing : public RecipeManager {
+public:
+    void DisplayAlphabetically() {
+        bool *visited = new bool[Recipe::numrecipes];
+        for (int i = 0; i < Recipe::numrecipes; i++) {
+            visited[i] = false;
+        }
+        for (int i = 0; i < Recipe::numrecipes; i++) {
+            int minIndex = -1;
+
+
+            for (int k = 0; k < Recipe::numrecipes; k++) {
+                if (!visited[k]) {
+                    if (minIndex == -1 || recipes[k].getName() < recipes[minIndex].getName()) {
+                        minIndex = k;
+                    }
+                }
+            }
+
+
+            cout << recipes[minIndex] << endl;
+            visited[minIndex] = true;
+        }
+
+
+        delete[] visited;
+    }
 };
 
 void HardcodeRecipes() {
 }
+void Menu(AlphabeticListing& al) {
+    int choice;
+    do {
+        cout << "\n===== Recipe Manager =====\n";
+        cout << "  Total recipes : " << Recipe::numrecipes << "\n";
+        cout << "  1. Add recipe (user input)\n";
+        cout << "  2. Display all recipes \n";
+        cout << "  0. Exit\n";
+        cout << "Choice: ";
+        cin >> choice;
+        cin.ignore();
 
-int main(){
-    RecipeManager manager;
-    manager.Menu();
+        switch (choice) {
+            case 1: al.addRecipe();               break;
+            case 2: al.DisplayAlphabetically();       break;
+            case 0:
+                cout << "Goodbye!\n";
+                break;
+            default:
+                cout << "Invalid choice.\n";
+        }
+    } while (choice != 0);
+}
+
+int main() {
+    AlphabeticListing al;
+    Menu(al);
     return 0;
 }
 
@@ -225,39 +277,4 @@ void HardcodedRecipes() {
      *add more ingredients ust like this
      *repeat for as many recipes as required
      */
-}
-
-void RecipeManager::DisplayAllRecipes() {
-    if (stored_recipes==0) {
-        cout<<"No recipes stored yet. \n";
-        return;
-    }
-    cout<<"\t---All recipes---\n";
-    for (int i = 0; i<stored_recipes;i++) {
-        cout<<recipes[i];
-    }
-}
-
-void RecipeManager::Menu() {
-    int choice;
-    do {
-        cout << "\n===== Recipe Manager =====\n";
-        cout << "  Total recipes : " << Recipe::numrecipes << "\n";
-        cout << "  1. Add recipe (user input)\n";
-        cout << "  2. Display all recipes\n";
-        cout << "  0. Exit\n";
-        cout << "Choice: ";
-        cin >> choice;
-        cin.ignore();
-
-    switch (choice) {
-        case 1: addRecipe();           break;
-        case 2: DisplayAllRecipes();   break;
-        case 0:
-            cout << "Goodbye!\n";
-            break;
-        default:
-            cout << "Invalid choice.\n";
-    }
-} while (choice != 0);
 }
