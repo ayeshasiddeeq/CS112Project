@@ -1,6 +1,24 @@
 #include <iostream>
 using namespace std;
 
+class RecipeNotFoundException : public exception {
+private:
+    string message;
+public:
+    RecipeNotFoundException(const string& name) {
+        message = "Recipe not found: \"" + name + "\"";
+    }
+    const char* what() const noexcept override { return message.c_str(); }
+};
+
+class InvalidInputException : public exception {
+private:
+    string message;
+public:
+    InvalidInputException(const string& msg) : message(msg) {}
+    const char* what() const noexcept override { return message.c_str(); }
+};
+
 class Displayable {
 public:
     virtual void display() = 0;
@@ -178,9 +196,21 @@ void Recipe::setRecipe() {
     getline(cin,name);
     cout<<"Recipe instructions: ";
     getline(cin,instructions);
-    cout << "Cooking time (in minutes): ";
-    cin >> cookingTime;
-    cin.ignore();
+    while (true) {
+        cout << "Cooking time (minutes): ";
+        try {
+            if (!(cin >> cookingTime) || cookingTime <= 0) {
+                cin.clear(); cin.ignore(10000, '\n');
+                throw InvalidInputException(
+                    "Cooking time must be a positive whole number.");
+            }
+            cin.ignore();
+            break;
+        }
+        catch (const InvalidInputException& e) {
+            cout << "  Error: " << e.what() << "\n";
+        }
+    }
     setIngredient();
 }
 
@@ -205,26 +235,35 @@ void Recipe::setIngredient(string name, int quantity, string quantity_type) {
 }
 
 void Recipe::setIngredient(){
-    string ingredName;
-    cout<<"\nEnter ingredients (type \"done\" to finish)."<<endl;
+    cout << "\nEnter ingredients (type \"done\" to finish).\n";
     while (true) {
-            cout<<"Ingredient :";
-            getline(cin, ingredName);
-            if (ingredName=="done")
+        cout << "  Ingredient name: ";
+        string ingredName;
+        getline(cin, ingredName);
+        if (ingredName == "done") break;
+        int qty;
+        while (true) {
+            cout << "  Quantity: ";
+            try {
+                if (!(cin >> qty) || qty <= 0) {
+                    cin.clear(); cin.ignore(10000, '\n');
+                    // REQUIREMENT h.i — throw
+                    throw InvalidInputException(
+                        "Quantity must be a positive whole number.");
+                }
+                cin.ignore();
                 break;
-            int quantity;
-            string quantity_type;
-
-            cout<<"Quantity:";
-            cin >> quantity;
-            cin.ignore();
-
-            cout<<"Quantity type (tablespoons / teaspoons / cups /grams etc) :";
-            getline(cin,quantity_type);
-
-            setIngredient(ingredName,quantity,quantity_type);
+            }
+            catch (const InvalidInputException& e) {
+                cout << "  Error: " << e.what() << "\n";
+            }
+        }
+        string qtype;
+        cout << "  Unit (grams/cups/tbsp/tsp/pieces etc.): ";
+        getline(cin, qtype);
+        setIngredient(ingredName, qty, qtype);
     }
-    cout<<endl;
+    cout << "\n";
 }
 
 string Recipe::getIngredientName(int i) const {
@@ -292,7 +331,6 @@ void RecipeManager::addRecipe(string name, string instructions, int time) {
 
 void RecipeManager::searchByIngredients() {
     if (stored_recipes == 0) { cout << "No recipes stored.\n"; return; }
-
     const int  MAX_ING   = 50;
     string*    userIngs  = new string[MAX_ING];
     int        userIngCnt = 0;
@@ -326,7 +364,7 @@ void RecipeManager::searchByIngredients() {
                     userIngs[u].find(recIng)  != string::npos) {
                     matchCount[i]++;
                     break;
-                }
+                    }
             }
         }
     }
@@ -362,7 +400,6 @@ void RecipeManager::searchByName(const string& query) {
     string lowerQuery = query;
     for (int k = 0; k < (int)lowerQuery.size(); k++)
         lowerQuery[k] = tolower(lowerQuery[k]);
-
     bool found = false;
     cout << "\n====== Search Results ======\n";
     for (int i = 0; i < stored_recipes; i++) {
@@ -375,6 +412,7 @@ void RecipeManager::searchByName(const string& query) {
             found = true;
         }
     }
+    if (!found) throw RecipeNotFoundException(query);
     cout << "============================\n";
 }
 
