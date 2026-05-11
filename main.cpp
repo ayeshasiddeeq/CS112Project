@@ -45,6 +45,7 @@ public:
     string getName(){return name;}
     int getCookingTime() { return cookingTime; }
 
+    string getIngredientName(int i) const;
     int getIngredientCount();
 
     friend ostream &operator<<(ostream &os, const Recipe &recipe);
@@ -66,56 +67,18 @@ public:
     void addRecipe(string name, string instructions,int time);
     void HardcodeRecipes();
     int getStoredCount() { return stored_recipes; }
+    void searchByIngredients();
+
     Recipe& getRecipeAt(int i) { return recipes[i]; }
-
+    friend const void DisplayAlphabetically(RecipeManager manager);
 };
-
 class AlphabeticListing : public RecipeManager {
 public:
-    void DisplayAlphabetically() {
-        if (stored_recipes == 0) {
-            cout << "No recipes stored.\n";
-            return;
-        }
-        bool *visited = new bool[stored_recipes];
-        for (int i = 0; i < stored_recipes; i++) {
-            visited[i] = false;
-        }
-        for (int i = 0; i < stored_recipes; i++) {
-            int minIndex = -1;
+    // REQUIREMENT c.ii — Function Overriding
+    void display();
 
-            for (int k = 0; k < stored_recipes; k++) {
-                if (!visited[k]) {
-                    if (minIndex == -1 || recipes[k].getName() < recipes[minIndex].getName()) {
-                        minIndex = k;
-                    }
-                }
-            }
-
-            cout<<minIndex+1<<" ";
-            cout << recipes[minIndex] << endl;
-            visited[minIndex] = true;
-        }
-
-
-        delete[] visited;
-    }
-    void syncFrom(RecipeManager& source) {
-        // Free old memory
-        delete[] recipes;
-
-        // Allocate new capacity with a buffer
-        recipe_capacity = source.getStoredCount() + 10;
-        recipes = new Recipe[recipe_capacity];   // <-- Correct array allocation
-        stored_recipes = 0;
-
-        // Copy recipes one by one
-        for (int i = 0; i < source.getStoredCount(); i++) {
-            recipes[stored_recipes] = source.getRecipeAt(i);
-            stored_recipes++;
-        }
-    }
 };
+
 class RecipeRanker : public RecipeManager {
 private:
     int* selectedRecipe;   // indices of chosen recipes
@@ -137,16 +100,6 @@ private:
     }
 
 public:
-    void syncFrom(RecipeManager& source) {
-        delete[] recipes;
-        recipe_capacity = source.getStoredCount() + 10;  // some buffer
-        recipes = new Recipe[recipe_capacity];
-        stored_recipes = 0;
-        for (int i = 0; i < source.getStoredCount(); i++) {
-            recipes[stored_recipes] = source.getRecipeAt(i);
-            stored_recipes++;
-        }
-    }
     RecipeRanker() {
         selectionCapacity = 5;
         selectionCount = 0;
@@ -157,128 +110,25 @@ public:
         delete[] selectedRecipe;
     }
     // User picks 2 or 3 recipes by index number
-    void selectRecipesToRank() {
-        selectionCount = 0;   // reset previous selection
-        int howMany;
-        cout << "\nHow many recipes to compare? (2 or 3): ";
-        cin >> howMany;
-        cin.ignore();
-
-        if (howMany < 2 || howMany > 3) {
-            cout << "Please enter 2 or 3.\n";
-            return;
-        }
-        if (howMany > stored_recipes) {
-            cout << "Not enough recipes stored.\n";
-            return;
-        }
-
-        for (int i = 0; i < howMany; i++) {
-            int idx;
-            cout << "Enter index of recipe " << (i + 1) << ": ";
-            cin >> idx;
-            cin.ignore();
-            // Validate index
-            if (idx < 0 || idx >= stored_recipes) {
-                cout << "Invalid index. Try again.\n";
-                i--;   // repeat this iteration
-                continue;
-            }
-            // Check for duplicates
-            bool duplicate = false;
-            for (int j = 0; j < selectionCount; j++) {
-                if (selectedRecipe[j] == idx) {
-                    cout << "Already selected. Pick a different one.\n";
-                    duplicate = true;
-                    break;
-                }
-            }
-            if (duplicate) { i--; continue; }
-            selectedRecipe[selectionCount++] = idx;
-        }
-    }
-    // Rank selected recipes — selection sort by score (ascending = best first)
-    void rankAndDisplay() {
-        if (selectionCount < 2) {
-            cout << "Select recipes first.\n";
-            return;
-        }
-        // Copy selected indices into a working array so we don't modify the original
-        int* ranked = new int[selectionCount];
-        for (int i = 0; i < selectionCount; i++)
-            ranked[i] = selectedRecipe[i];
-
-        // Selection sort — find the minimum score each pass
-        for (int i = 0; i < selectionCount - 1; i++) {
-            int bestPos = i;
-            for (int j = i + 1; j < selectionCount; j++) {
-                if (computeScore(ranked[j]) < computeScore(ranked[bestPos]))
-                    bestPos = j;
-            }
-            // Swap
-            int temp = ranked[i];
-            ranked[i] = ranked[bestPos];
-            ranked[bestPos] = temp;
-        }
-        // Display ranked results
-        cout << "\n======= RANKING (Best to Worst) =======\n";
-        for (int i = 0; i < selectionCount; i++) {
-            int idx = ranked[i];
-            cout << "  Rank #" << (i + 1) << ": " << recipes[idx].getName() << "\n";
-        }
-
-        // Highlight the winner
-        cout << " Best recommendation: " << recipes[ranked[0]] << " <<<\n";
-        cout << "=======================================\n";
-
-        delete[] ranked;
-    }
-    // Convenience: do both steps in sequence
+    void syncFrom(RecipeManager& source);
+    void selectRecipesToRank();
+    void rankAndDisplay();
     void runRanking() {
         selectRecipesToRank();
         rankAndDisplay();
     }
 };
-void Menu(AlphabeticListing& al, RecipeRanker& rank) {
-    int choice;
-    do {
-        cout << "\n===== Recipe Manager =====\n";
-        cout << "  Total recipes : " << Recipe::numrecipes << "\n";
-        cout << "  1. Add recipe (user input)\n";
-        cout << "  2. Display all recipes \n";
-        cout << "  3. Rank recipes\n";
-        cout << "  0. Exit\n";
-        cout << "Choice: ";
-        cin >> choice;
-        cin.ignore();
 
-        switch (choice) {
-            case 1: al.addRecipe();
-                rank.syncFrom(al);
-                break;
-            case 2: al.DisplayAlphabetically();       break;
-            case 3: rank.runRanking();        break;
-            case 0:
-                cout << "Goodbye!\n";
-                break;
-            default:
-                cout << "Invalid choice.\n";
-        }
-    } while (choice != 0);
-}
+void Menu(AlphabeticListing& al, RecipeRanker& rank);
 
 int main() {
-        RecipeManager manager;
-        manager.HardcodeRecipes();
+    AlphabeticListing a1;
+    RecipeRanker ranker;
+    a1.HardcodeRecipes();
+    ranker.syncFrom(a1);
 
-        AlphabeticListing al;
-        al.syncFrom(manager);   // copy recipes once
-
-        RecipeRanker ranker;
-        ranker.syncFrom(al);
-
-        Menu(al, ranker);
-        return 0;
+    Menu(a1, ranker);
+    return 0;
     }
 
 Recipe::Recipe() {
@@ -376,6 +226,15 @@ void Recipe::setIngredient(){
     cout<<endl;
 }
 
+string Recipe::getIngredientName(int i) const {
+    if (i >= 0 && i < ingredient_count) {
+        return ingredients[i].name;
+    }
+    else {
+        return "";
+    }
+}
+
 int Recipe::getIngredientCount() {
     return ingredient_count;
 }
@@ -428,6 +287,80 @@ void RecipeManager::addRecipe(string name, string instructions, int time) {
     recipes[stored_recipes].setRecipe(name,instructions,time);
     stored_recipes++;
     Recipe::numrecipes++;
+}
+
+void RecipeManager::searchByIngredients() {
+    if (stored_recipes == 0) { cout << "No recipes stored.\n"; return; }
+
+    // Gather user's available ingredients into a dynamic array
+    const int  MAX_ING   = 50;
+    string*    userIngs  = new string[MAX_ING];
+    int        userIngCnt = 0;
+
+    cout << "\nEnter ingredients you have (type \"done\" to finish):\n";
+    while (userIngCnt < MAX_ING) {
+        cout << "  Ingredient: ";
+        string ing;
+        getline(cin, ing);
+        if (ing == "done") break;
+        // Store lowercase for case-insensitive matching
+        for (int k = 0; k < (int)ing.size(); k++) ing[k] = tolower(ing[k]);
+        userIngs[userIngCnt++] = ing;
+    }
+
+    if (userIngCnt == 0) {
+        cout << "No ingredients entered.\n";
+        delete[] userIngs;
+        return;
+    }
+
+    // Count how many user ingredients each recipe contains
+    // REQUIREMENT f.iv — Sorting with Objects (by match count)
+    int* matchCount = new int[stored_recipes];
+    for (int i = 0; i < stored_recipes; i++) {
+        matchCount[i] = 0;
+        for (int j = 0; j < recipes[i].getIngredientCount(); j++) {
+            string recIng = recipes[i].getIngredientName(j);
+            for (int k = 0; k < (int)recIng.size(); k++)
+                recIng[k] = tolower(recIng[k]);
+
+            for (int u = 0; u < userIngCnt; u++) {
+                // Match if either string is a substring of the other
+                if (recIng.find(userIngs[u]) != string::npos ||
+                    userIngs[u].find(recIng)  != string::npos) {
+                    matchCount[i]++;
+                    break;   // count each recipe-ingredient once only
+                }
+            }
+        }
+    }
+
+    // Build index array and sort descending by match count (selection sort)
+    int* order = new int[stored_recipes];
+    for (int i = 0; i < stored_recipes; i++) order[i] = i;
+    for (int i = 0; i < stored_recipes - 1; i++) {
+        int best = i;
+        for (int j = i + 1; j < stored_recipes; j++)
+            if (matchCount[order[j]] > matchCount[order[best]]) best = j;
+        int tmp = order[i]; order[i] = order[best]; order[best] = tmp;
+    }
+
+    cout << "\n====== Recipes Matching Your Ingredients ======\n";
+    bool anyMatch = false;
+    for (int i = 0; i < stored_recipes; i++) {
+        int idx = order[i];
+        if (matchCount[idx] > 0) {
+            cout << "  [ " << matchCount[idx] << " ingredient match(es) ]\n";
+            cout << recipes[idx];
+            anyMatch = true;
+        }
+    }
+    if (!anyMatch) cout << "  No recipes matched your ingredients.\n";
+    cout << "================================================\n";
+
+    delete[] userIngs;
+    delete[] matchCount;
+    delete[] order;
 }
 
 void RecipeManager::HardcodeRecipes() {
@@ -518,4 +451,179 @@ void RecipeManager::HardcodeRecipes() {
     recipes[stored_recipes-1].setIngredient("Sugar",1,"tbsp");
     recipes[stored_recipes-1].setIngredient("Salt",1,"tsp");
     recipes[stored_recipes-1].setIngredient("Butter",2,"tbsp");
+}
+
+const void DisplayAlphabetically(RecipeManager manager) {
+    if (manager.stored_recipes == 0) {
+        cout << "No recipes stored.\n";
+        return;
+    }
+    bool *visited = new bool[manager.stored_recipes];
+    for (int i = 0; i < manager.stored_recipes; i++) {
+        visited[i] = false;
+    }
+    for (int i = 0; i < manager.stored_recipes; i++) {
+        int minIndex = -1;
+
+        for (int k = 0; k < manager.stored_recipes; k++) {
+            if (!visited[k]) {
+                if (minIndex == -1 || manager.recipes[k].getName() < manager.recipes[minIndex].getName()) {
+                    minIndex = k;
+                }
+            }
+        }
+
+        cout<<minIndex+1<<" ";
+        cout << manager.recipes[minIndex] << endl;
+        visited[minIndex] = true;
+    }
+
+
+    delete[] visited;
+}
+
+void AlphabeticListing::display() {
+    if (stored_recipes == 0) { cout << "No recipes stored.\n"; return; }
+
+    // REQUIREMENT f.iv — Selection sort by recipe name
+    bool* visited = new bool[stored_recipes];
+    for (int i = 0; i < stored_recipes; i++) visited[i] = false;
+
+    cout << "\n========== All Recipes (A-Z) ==========\n";
+    for (int pass = 0; pass < stored_recipes; pass++) {
+        int minIdx = -1;
+        for (int k = 0; k < stored_recipes; k++) {
+            if (!visited[k]) {
+                if (minIdx == -1 ||
+                    recipes[k].getName() < recipes[minIdx].getName())
+                    minIdx = k;
+            }
+        }
+        cout << (pass + 1) << ". " << recipes[minIdx];
+        visited[minIdx] = true;
+    }
+    cout << "========================================\n";
+    delete[] visited;
+}
+
+void RecipeRanker::syncFrom(RecipeManager& source) {
+    delete[] recipes;
+    recipe_capacity = source.getStoredCount() + 10;
+    recipes         = new Recipe[recipe_capacity];
+    stored_recipes  = 0;
+    for (int i = 0; i < source.getStoredCount(); i++)
+        recipes[stored_recipes++] = source.getRecipeAt(i);
+}
+void RecipeRanker::selectRecipesToRank() {
+    selectionCount = 0;   // reset previous selection
+    int howMany;
+    cout << "\nHow many recipes to compare? (2 or 3): ";
+    cin >> howMany;
+    cin.ignore();
+
+    if (howMany < 2 || howMany > 3) {
+        cout << "Please enter 2 or 3.\n";
+        return;
+    }
+    if (howMany > stored_recipes) {
+        cout << "Not enough recipes stored.\n";
+        return;
+    }
+
+    for (int i = 0; i < howMany; i++) {
+        int idx;
+        cout << "Enter index of recipe " << (i + 1) << ": ";
+        cin >> idx;
+        cin.ignore();
+        // Validate index
+        if (idx < 0 || idx >= stored_recipes) {
+            cout << "Invalid index. Try again.\n";
+            i--;   // repeat this iteration
+            continue;
+        }
+        // Check for duplicates
+        bool duplicate = false;
+        for (int j = 0; j < selectionCount; j++) {
+            if (selectedRecipe[j] == idx) {
+                cout << "Already selected. Pick a different one.\n";
+                duplicate = true;
+                break;
+            }
+        }
+        if (duplicate) { i--; continue; }
+        selectedRecipe[selectionCount++] = idx;
+    }
+}
+
+void RecipeRanker::rankAndDisplay() {
+    if (selectionCount < 2) {
+        cout << "Select recipes first.\n";
+        return;
+    }
+    int* ranked = new int[selectionCount];
+    for (int i = 0; i < selectionCount; i++)
+        ranked[i] = selectedRecipe[i];
+
+    // Selection sort — find the minimum score each pass
+    for (int i = 0; i < selectionCount - 1; i++) {
+        int bestPos = i;
+        for (int j = i + 1; j < selectionCount; j++) {
+            if (computeScore(ranked[j]) < computeScore(ranked[bestPos]))
+                bestPos = j;
+        }
+        // Swap
+        int temp = ranked[i];
+        ranked[i] = ranked[bestPos];
+        ranked[bestPos] = temp;
+    }
+    // Display ranked results
+    cout << "\n======= RANKING (Best to Worst) =======\n";
+    for (int i = 0; i < selectionCount; i++) {
+        int idx = ranked[i];
+        cout << "  Rank #" << (i + 1) << ": " << recipes[idx].getName() << "\n";
+    }
+
+    // Highlight the winner
+    cout << " Best recommendation: " << recipes[ranked[0]] << " <<<\n";
+    cout << "=======================================\n";
+
+    delete[] ranked;
+}
+
+void Menu(AlphabeticListing& al, RecipeRanker& rank) {
+    int choice;
+    do {
+        cout << "\n===== Recipe Manager =====\n";
+        cout << "  Total recipes : " << Recipe::numrecipes << "\n";
+        cout << "  1. Add recipe\n";
+        cout << "  2. Display all recipes (A-Z)\n";
+        cout << "  3. Rank recipes\n";
+        cout << "  4. Search by ingredients\n";
+        cout << "  0. Exit\n";
+        cout << "Choice: ";
+        cin>>choice;
+        switch (choice) {
+            case 1:
+                al.addRecipe();
+                rank.syncFrom(al);
+                break;
+
+            case 2:
+                al.display();
+                break;
+
+            case 3:
+                rank.runRanking();
+                break;
+
+            case 4:
+                al.searchByIngredients();
+                break;
+            case 0:
+                cout << "Goodbye!\n";
+                break;
+            default:
+                cout << "  Invalid choice.\n";
+        }
+    } while (choice != 0);
 }
