@@ -1,6 +1,12 @@
 #include <iostream>
 using namespace std;
 
+class Displayable {
+public:
+    virtual void display() = 0;
+    virtual ~Displayable() {}
+};
+
 class Ingredient{
 public:
     string name;
@@ -30,7 +36,7 @@ private:
     Ingredient* ingredients;
     int ingredient_count;
     int capacity;
-    int cookingTime;          //added cooking time
+    int cookingTime;
 public:
     static int numrecipes;
     Recipe();
@@ -52,7 +58,7 @@ public:
 };
 int Recipe::numrecipes = 0;
 
-class RecipeManager{
+class RecipeManager:public Displayable{
 protected:
     Recipe *recipes;
     int recipe_capacity;
@@ -62,41 +68,36 @@ public:
     RecipeManager();
     ~RecipeManager();
 
+    void display() override{
+        for (int i = 0; i < stored_recipes; i++)
+            cout << (i + 1) << ". " << recipes[i];
+    }
     void increaseCapacity();
     void addRecipe();
     void addRecipe(string name, string instructions,int time);
     void HardcodeRecipes();
     int getStoredCount() { return stored_recipes; }
     void searchByIngredients();
+    void searchByName(const string& query);
 
     Recipe& getRecipeAt(int i) { return recipes[i]; }
-    friend const void DisplayAlphabetically(RecipeManager manager);
-};
+  };
 class AlphabeticListing : public RecipeManager {
 public:
-    // REQUIREMENT c.ii — Function Overriding
     void display();
 
 };
 
 class RecipeRanker : public RecipeManager {
 private:
-    int* selectedRecipe;   // indices of chosen recipes
+    int* selectedRecipe;
     int selectionCount;
     int selectionCapacity;
-    // --- Scoring logic ---
-    // Lower score = better recipe
-    // We reward fewer ingredients and shorter cooking time
+
     float computeScore(int recipeIndex) {
         int time = recipes[recipeIndex].getCookingTime();
         int ingCount = recipes[recipeIndex].getIngredientCount();
-
-        // Both factors equally weighted — you can adjust the multipliers
-        // Lower time and fewer ingredients = lower (better) score
         return (float)(time * 1.0 + ingCount * 5.0);
-        //                 ^                  ^
-        //          each minute counts    each ingredient
-        //          as 1 point            counts as 5 points
     }
 
 public:
@@ -109,7 +110,6 @@ public:
     ~RecipeRanker() {
         delete[] selectedRecipe;
     }
-    // User picks 2 or 3 recipes by index number
     void syncFrom(RecipeManager& source);
     void selectRecipesToRank();
     void rankAndDisplay();
@@ -174,6 +174,7 @@ Recipe::~Recipe() {
 }
 void Recipe::setRecipe() {
     cout<<"Recipe name: ";
+    cin.ignore();
     getline(cin,name);
     cout<<"Recipe instructions: ";
     getline(cin,instructions);
@@ -245,10 +246,10 @@ ostream &operator<<(ostream &os, const Recipe &recipe) {
     for (int i = 0;i<recipe.ingredient_count;i++) {
         os<<"\t"<<recipe.ingredients[i].name
         <<" - "<<recipe.ingredients[i].quantity
-        <<"\t"<<recipe.ingredients[i].quantity_type;
+        <<"\t"<<recipe.ingredients[i].quantity_type<<endl;
     }
-    os<<"Instructions: "<<recipe.instructions<<endl;
-    os<<"*****"<<endl;
+    os<<endl<<"Instructions: "<<recipe.instructions<<endl;
+    os<<endl;
     return os;
 }
 
@@ -292,7 +293,6 @@ void RecipeManager::addRecipe(string name, string instructions, int time) {
 void RecipeManager::searchByIngredients() {
     if (stored_recipes == 0) { cout << "No recipes stored.\n"; return; }
 
-    // Gather user's available ingredients into a dynamic array
     const int  MAX_ING   = 50;
     string*    userIngs  = new string[MAX_ING];
     int        userIngCnt = 0;
@@ -303,7 +303,6 @@ void RecipeManager::searchByIngredients() {
         string ing;
         getline(cin, ing);
         if (ing == "done") break;
-        // Store lowercase for case-insensitive matching
         for (int k = 0; k < (int)ing.size(); k++) ing[k] = tolower(ing[k]);
         userIngs[userIngCnt++] = ing;
     }
@@ -314,8 +313,6 @@ void RecipeManager::searchByIngredients() {
         return;
     }
 
-    // Count how many user ingredients each recipe contains
-    // REQUIREMENT f.iv — Sorting with Objects (by match count)
     int* matchCount = new int[stored_recipes];
     for (int i = 0; i < stored_recipes; i++) {
         matchCount[i] = 0;
@@ -325,17 +322,15 @@ void RecipeManager::searchByIngredients() {
                 recIng[k] = tolower(recIng[k]);
 
             for (int u = 0; u < userIngCnt; u++) {
-                // Match if either string is a substring of the other
                 if (recIng.find(userIngs[u]) != string::npos ||
                     userIngs[u].find(recIng)  != string::npos) {
                     matchCount[i]++;
-                    break;   // count each recipe-ingredient once only
+                    break;
                 }
             }
         }
     }
 
-    // Build index array and sort descending by match count (selection sort)
     int* order = new int[stored_recipes];
     for (int i = 0; i < stored_recipes; i++) order[i] = i;
     for (int i = 0; i < stored_recipes - 1; i++) {
@@ -361,6 +356,26 @@ void RecipeManager::searchByIngredients() {
     delete[] userIngs;
     delete[] matchCount;
     delete[] order;
+}
+
+void RecipeManager::searchByName(const string& query) {
+    string lowerQuery = query;
+    for (int k = 0; k < (int)lowerQuery.size(); k++)
+        lowerQuery[k] = tolower(lowerQuery[k]);
+
+    bool found = false;
+    cout << "\n====== Search Results ======\n";
+    for (int i = 0; i < stored_recipes; i++) {
+        string lowerName = recipes[i].getName();
+        for (int k = 0; k < (int)lowerName.size(); k++)
+            lowerName[k] = tolower(lowerName[k]);
+
+        if (lowerName.find(lowerQuery) != string::npos) {
+            cout << recipes[i];
+            found = true;
+        }
+    }
+    cout << "============================\n";
 }
 
 void RecipeManager::HardcodeRecipes() {
@@ -453,35 +468,6 @@ void RecipeManager::HardcodeRecipes() {
     recipes[stored_recipes-1].setIngredient("Butter",2,"tbsp");
 }
 
-const void DisplayAlphabetically(RecipeManager manager) {
-    if (manager.stored_recipes == 0) {
-        cout << "No recipes stored.\n";
-        return;
-    }
-    bool *visited = new bool[manager.stored_recipes];
-    for (int i = 0; i < manager.stored_recipes; i++) {
-        visited[i] = false;
-    }
-    for (int i = 0; i < manager.stored_recipes; i++) {
-        int minIndex = -1;
-
-        for (int k = 0; k < manager.stored_recipes; k++) {
-            if (!visited[k]) {
-                if (minIndex == -1 || manager.recipes[k].getName() < manager.recipes[minIndex].getName()) {
-                    minIndex = k;
-                }
-            }
-        }
-
-        cout<<minIndex+1<<" ";
-        cout << manager.recipes[minIndex] << endl;
-        visited[minIndex] = true;
-    }
-
-
-    delete[] visited;
-}
-
 void AlphabeticListing::display() {
     if (stored_recipes == 0) { cout << "No recipes stored.\n"; return; }
 
@@ -515,7 +501,7 @@ void RecipeRanker::syncFrom(RecipeManager& source) {
         recipes[stored_recipes++] = source.getRecipeAt(i);
 }
 void RecipeRanker::selectRecipesToRank() {
-    selectionCount = 0;   // reset previous selection
+    selectionCount = 0;
     int howMany;
     cout << "\nHow many recipes to compare? (2 or 3): ";
     cin >> howMany;
@@ -576,14 +562,13 @@ void RecipeRanker::rankAndDisplay() {
         ranked[i] = ranked[bestPos];
         ranked[bestPos] = temp;
     }
-    // Display ranked results
+
     cout << "\n======= RANKING (Best to Worst) =======\n";
     for (int i = 0; i < selectionCount; i++) {
         int idx = ranked[i];
         cout << "  Rank #" << (i + 1) << ": " << recipes[idx].getName() << "\n";
     }
 
-    // Highlight the winner
     cout << " Best recommendation: " << recipes[ranked[0]] << " <<<\n";
     cout << "=======================================\n";
 
@@ -599,6 +584,7 @@ void Menu(AlphabeticListing& al, RecipeRanker& rank) {
         cout << "  2. Display all recipes (A-Z)\n";
         cout << "  3. Rank recipes\n";
         cout << "  4. Search by ingredients\n";
+        cout << "  5. Search by name\n";
         cout << "  0. Exit\n";
         cout << "Choice: ";
         cin>>choice;
@@ -619,6 +605,14 @@ void Menu(AlphabeticListing& al, RecipeRanker& rank) {
             case 4:
                 al.searchByIngredients();
                 break;
+            case 5: {
+                cout << "  Enter name (or part of name) to search: ";
+                cin.ignore();
+                string query;
+                getline(cin, query);
+                al.searchByName(query);
+                break;
+            }
             case 0:
                 cout << "Goodbye!\n";
                 break;
