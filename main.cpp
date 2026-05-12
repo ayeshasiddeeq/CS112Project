@@ -92,6 +92,7 @@ protected:
     int recipe_capacity;
     int stored_recipes;
 
+    void sortAlphabetically();
 public:
     RecipeManager();
     ~RecipeManager();
@@ -116,7 +117,8 @@ public:
 class AlphabeticListing : public RecipeManager {
 public:
     void display();
-
+    void addRecipe();
+    void addRecipe(string name, string instructions, int time);
 };
 
 class RecipeRanker : public RecipeManager {
@@ -208,8 +210,8 @@ Recipe::~Recipe() {
 }
 void Recipe::setRecipe() {
     cout<<"Recipe name: ";
-    cin.ignore();
-    getline(cin,name);
+
+   getline(cin,name);
     cout<<"Recipe instructions: ";
     getline(cin,instructions);
     while (true) {
@@ -457,6 +459,16 @@ void AlphabeticListing::display() {
     delete[] visited;
 }
 
+void AlphabeticListing::addRecipe() {
+    RecipeManager::addRecipe();
+    sortAlphabetically();
+}
+void AlphabeticListing::addRecipe(string name, string instructions, int time) {
+    RecipeManager::addRecipe(name, instructions, time);
+    sortAlphabetically();
+}
+
+
 void RecipeRanker::syncFrom(RecipeManager& source) {
     delete[] recipes;
     recipe_capacity = source.getStoredCount() + 10;
@@ -481,17 +493,23 @@ void RecipeRanker::selectRecipesToRank() {
         return;
     }
 
+    cout << "\nAvailable recipes:\n";
+    for (int i = 0; i < stored_recipes; i++) {
+        cout << "  " << (i + 1) << ". " << recipes[i].getName() << "\n";
+    }
+
     for (int i = 0; i < howMany; i++) {
         int idx;
-        cout << "Enter index of recipe " << (i + 1) << ": ";
+        cout << "Enter number of recipe " << (i + 1) << " (1-" << stored_recipes << "): ";
         cin >> idx;
         cin.ignore();
-        // Validate index
-        if (idx < 0 || idx >= stored_recipes) {
-            cout << "Invalid index. Try again.\n";
-            i--;   // repeat this iteration
+        // Validate (1-based input)
+        if (idx < 1 || idx > stored_recipes) {
+            cout << "Invalid number. Try again.\n";
+            i--;
             continue;
         }
+        idx--;  // convert to 0-based index
         // Check for duplicates
         bool duplicate = false;
         for (int j = 0; j < selectionCount; j++) {
@@ -579,7 +597,7 @@ void Menu(AlphabeticListing& al, RecipeRanker& rank) {
                 break;
             case 5: {
                 cout << "  Enter name (or part of name) to search: ";
-                cin.ignore();
+
                 string query;
                 getline(cin, query);
                 al.searchByName(query);
@@ -659,6 +677,22 @@ bool RecipeManager::loadFromFile(const string& filename) {
     file.close();
     return true;
 }
+
+void RecipeManager::sortAlphabetically() {
+    for (int i = 0; i < stored_recipes - 1; i++) {
+        int minIdx = i;
+        for (int j = i + 1; j < stored_recipes; j++) {
+            if (recipes[j].getName() < recipes[minIdx].getName())
+                minIdx = j;
+        }
+        if (minIdx != i) {
+            Recipe temp = recipes[i];
+            recipes[i] = recipes[minIdx];
+            recipes[minIdx] = temp;
+        }
+    }
+}
+
 void RecipeManager::HardcodeRecipes() {
     addRecipe("Spaghetti Aglio e Olio","Boil spaghetti in salted water until al dente. In a pan, heat olive oil, sauté sliced garlic until golden. Add chili flakes. Toss cooked spaghetti in the oil mixture. Add salt and parsley. Serve hot.",25);
     recipes[stored_recipes-1].setIngredient("Spaghetti", 200, "grams");
@@ -738,7 +772,7 @@ void RecipeManager::HardcodeRecipes() {
     recipes[stored_recipes-1].setIngredient("Olive Oil",2,"tbsp");
     recipes[stored_recipes-1].setIngredient("Tahini",2,"tbsp");
     recipes[stored_recipes-1].setIngredient("Salt",1,"tsp");
-    recipes[stored_recipes-1].setIngredient("Lemon uice",2,"tbsp");
+    recipes[stored_recipes-1].setIngredient("Lemon juice",2,"tbsp");
 
     addRecipe("Crepes","Mix all ingredients into smooth batter. Heat pan and pour thin layer. Cook both sides until golden. Serve with toppings.",25);
     recipes[stored_recipes-1].setIngredient("Flour", 1, "cup");
