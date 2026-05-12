@@ -4,6 +4,9 @@
 #include <cctype>
 using namespace std;
 
+//===================================================
+//Exception Classes
+//===================================================
 class RecipeNotFoundException : public exception {
 private:
     string message;
@@ -22,12 +25,24 @@ public:
     const char* what() const noexcept override { return message.c_str(); }
 };
 
+//=================================================================
+//Abstract Classes to display Polymorphism and function overriding
+//=================================================================
 class Displayable {
 public:
     virtual void display() = 0;
     virtual ~Displayable() {}
 };
+class Saveable {
+public:
+    virtual void saveToFile(const string& filename) = 0;
+    virtual bool loadFromFile(const string& filename) = 0;
+    virtual ~Saveable() {}
+};
 
+//================================================================
+//Class Ingredient
+//===============================================================
 class Ingredient{
 public:
     string name;
@@ -49,13 +64,10 @@ public:
         this->quantity_type = type;
     }
 };
-class Saveable {
-public:
-    virtual void saveToFile(const string& filename) = 0;
-    virtual bool loadFromFile(const string& filename) = 0;
-    virtual ~Saveable() {}
-};
 
+//====================================================================
+//Class Recipe
+//====================================================================
 class Recipe {
 private:
     string name;
@@ -86,6 +98,9 @@ public:
 };
 int Recipe::numrecipes = 0;
 
+//=============================================================
+//Derived Class Recipe Manager
+//=============================================================
 class RecipeManager:public Displayable,public Saveable{
 protected:
     Recipe *recipes;
@@ -114,25 +129,31 @@ public:
 
     Recipe& getRecipeAt(int i) { return recipes[i]; }
   };
+
+//===================================================
+//Derived Class Alphabetic Listing
+//====================================================
 class AlphabeticListing : public RecipeManager {
 public:
-    void display();
-    void addRecipe();
-    void addRecipe(string name, string instructions, int time);
+    void display();     //overriden from displayable class
+    void addRecipe();    //overriden from recipe manager class
+    void addRecipe(string name, string instructions, int time);    //overriden from recipe manager class
 };
 
+//===========================================================
+//Derived Class Recipe Ranker
+//===========================================================
 class RecipeRanker : public RecipeManager {
 private:
     int* selectedRecipe;
     int selectionCount;
     int selectionCapacity;
 
-    float computeScore(int recipeIndex) {
+    float computeScore(int recipeIndex) {        //Function to compute score of recipes for ranking
         int time = recipes[recipeIndex].getCookingTime();
         int ingCount = recipes[recipeIndex].getIngredientCount();
         return (float)(time * 1.0 + ingCount * 5.0);
     }
-
 public:
     RecipeRanker() {
         selectionCapacity = 5;
@@ -152,14 +173,18 @@ public:
     }
 };
 
+//=============Declaration of Menu Function===================
 void Menu(AlphabeticListing& al, RecipeRanker& rank);
 
+//===========================================================
+//Main Function
+//=========================================================
 int main() {
     AlphabeticListing al;
     RecipeRanker ranker;
-    if (!al.loadFromFile("recipes.txt")) {
+    if (!al.loadFromFile("recipes.txt")) {        //If file does not exist, create it. If it exists, simply load it
         cout << "First run - loading default recipes and saving to file...\n";
-    al.HardcodeRecipes();
+    al.HardcodeRecipes();        //Hardcodes recipe only on first run
     al.saveToFile("recipes.txt");
     }
     ranker.syncFrom(al);
@@ -167,6 +192,9 @@ int main() {
     return 0;
     }
 
+//=========================================================
+//Class Recipe Out of line function definitions
+//========================================================
 Recipe::Recipe() {
     name="";
     instructions="";
@@ -175,7 +203,7 @@ Recipe::Recipe() {
     cookingTime=0;
     ingredients = new Ingredient[capacity];
 }
-
+//Copy constructor
 Recipe::Recipe(const Recipe& r) {
     name=r.name;
     instructions=r.instructions;
@@ -187,7 +215,7 @@ Recipe::Recipe(const Recipe& r) {
         ingredients[i]=r.ingredients[i];
     }
 }
-
+//Assignment operator overloading
 Recipe &Recipe::operator=(const Recipe &r) {
     if (this ==&r)
         return *this;
@@ -204,11 +232,10 @@ Recipe &Recipe::operator=(const Recipe &r) {
     return *this;
 }
 
-
 Recipe::~Recipe() {
     delete []ingredients;
 }
-void Recipe::setRecipe() {
+void Recipe::setRecipe() {        //for user input recipes
     cout<<"Recipe name: ";
 
    getline(cin,name);
@@ -231,8 +258,8 @@ void Recipe::setRecipe() {
     }
     setIngredient();
 }
-
-void Recipe::setRecipe(string name, string instructions, int time) {
+//overloaded set recipe function
+void Recipe::setRecipe(string name, string instructions, int time) {        //for hardcoding recipes
     this->name = name;
     this->instructions = instructions;
     this->cookingTime = time;
@@ -251,7 +278,6 @@ void Recipe::setIngredient(string name, int quantity, string quantity_type) {
     }
     ingredients[ingredient_count++]=Ingredient(name,quantity,quantity_type);
 }
-
 void Recipe::setIngredient(){
     cout << "\nEnter ingredients (type \"done\" to finish).\n";
     while (true) {
@@ -265,7 +291,7 @@ void Recipe::setIngredient(){
             try {
                 if (!(cin >> qty) || qty <= 0) {
                     cin.clear(); cin.ignore(10000, '\n');
-                    // REQUIREMENT h.i — throw
+
                     throw InvalidInputException(
                         "Quantity must be a positive whole number.");
                 }
@@ -283,8 +309,6 @@ void Recipe::setIngredient(){
     }
     cout << "\n";
 }
-
-
 string Recipe::getIngredientName(int i) const {
     if (i >= 0 && i < ingredient_count) {
         return ingredients[i].name;
@@ -293,11 +317,10 @@ string Recipe::getIngredientName(int i) const {
         return "";
     }
 }
-
 int Recipe::getIngredientCount() {
     return ingredient_count;
 }
-
+//Insertion operator overloading
 ostream &operator<<(ostream &os, const Recipe &recipe) {
     os<<"Recipe name: "<<recipe.name<<endl;
     os<<"Ingredients:\n";
@@ -311,17 +334,18 @@ ostream &operator<<(ostream &os, const Recipe &recipe) {
     return os;
 }
 
+//==================================================
+//Recipe Manager out of line function definition
+//==================================================
 RecipeManager::RecipeManager() {
     recipe_capacity = 10;
     recipes = new Recipe[recipe_capacity];
     stored_recipes=0;
 }
-
 RecipeManager::~RecipeManager() {
     delete []recipes;
 }
-
-void RecipeManager::increaseCapacity() {
+void RecipeManager::increaseCapacity() {        //helper function to reallocate dynamic memory if limit reached
     if (stored_recipes < recipe_capacity) {
         return;
     }
@@ -335,12 +359,11 @@ void RecipeManager::increaseCapacity() {
     recipe_capacity = new_capacity;
 }
 void RecipeManager::addRecipe() {
-    increaseCapacity();
+    increaseCapacity();        //check if sufficient memory present or allocate before proceeding
     recipes[stored_recipes].setRecipe();
     stored_recipes++;
     Recipe::numrecipes++;
 }
-
 void RecipeManager::addRecipe(string name, string instructions, int time) {
     increaseCapacity();
     recipes[stored_recipes].setRecipe(name,instructions,time);
@@ -360,7 +383,7 @@ void RecipeManager::searchByIngredients() {
         string ing;
         getline(cin, ing);
         if (ing == "done") break;
-        for (int k = 0; k < (int)ing.size(); k++) ing[k] = tolower(ing[k]);
+        for (int k = 0; k < (int)ing.size(); k++) ing[k] = tolower(ing[k]);        //lowercase all user entered ingredients
         userIngs[userIngCnt++] = ing;
     }
 
@@ -375,11 +398,11 @@ void RecipeManager::searchByIngredients() {
         matchCount[i] = 0;
         for (int j = 0; j < recipes[i].getIngredientCount(); j++) {
             string recIng = recipes[i].getIngredientName(j);
-            for (int k = 0; k < (int)recIng.size(); k++)
+            for (int k = 0; k < (int)recIng.size(); k++)        //lowercase all recipe ingredients
                 recIng[k] = tolower(recIng[k]);
 
             for (int u = 0; u < userIngCnt; u++) {
-                if (recIng.find(userIngs[u]) != string::npos ||
+                if (recIng.find(userIngs[u]) != string::npos ||         //two way substring check
                     userIngs[u].find(recIng)  != string::npos) {
                     matchCount[i]++;
                     break;
@@ -389,12 +412,13 @@ void RecipeManager::searchByIngredients() {
     }
 
     int* order = new int[stored_recipes];
-    for (int i = 0; i < stored_recipes; i++) order[i] = i;
+    for (int i = 0; i < stored_recipes; i++) order[i] = i;        //stores indices of recipes
     for (int i = 0; i < stored_recipes - 1; i++) {
         int best = i;
         for (int j = i + 1; j < stored_recipes; j++)
-            if (matchCount[order[j]] > matchCount[order[best]]) best = j;
-        int tmp = order[i]; order[i] = order[best]; order[best] = tmp;
+            if (matchCount[order[j]] > matchCount[order[best]]) best = j;        //reorders indices of recipes based on matchcount
+        int temp = order[i];
+        order[i] = order[best]; order[best] = temp;
     }
 
     cout << "\n====== Recipes Matching Your Ingredients ======\n";
@@ -434,184 +458,6 @@ void RecipeManager::searchByName(const string& query) {
     if (!found) throw RecipeNotFoundException(query);
     cout << "============================\n";
 }
-
-void AlphabeticListing::display() {
-    if (stored_recipes == 0) { cout << "No recipes stored.\n"; return; }
-
-    // REQUIREMENT f.iv — Selection sort by recipe name
-    bool* visited = new bool[stored_recipes];
-    for (int i = 0; i < stored_recipes; i++) visited[i] = false;
-
-    cout << "\n========== All Recipes (A-Z) ==========\n";
-    for (int pass = 0; pass < stored_recipes; pass++) {
-        int minIdx = -1;
-        for (int k = 0; k < stored_recipes; k++) {
-            if (!visited[k]) {
-                if (minIdx == -1 ||
-                    recipes[k].getName() < recipes[minIdx].getName())
-                    minIdx = k;
-            }
-        }
-        cout << (pass + 1) << ". " << recipes[minIdx];
-        visited[minIdx] = true;
-    }
-    cout << "========================================\n";
-    delete[] visited;
-}
-
-void AlphabeticListing::addRecipe() {
-    RecipeManager::addRecipe();
-    sortAlphabetically();
-}
-void AlphabeticListing::addRecipe(string name, string instructions, int time) {
-    RecipeManager::addRecipe(name, instructions, time);
-    sortAlphabetically();
-}
-
-
-void RecipeRanker::syncFrom(RecipeManager& source) {
-    delete[] recipes;
-    recipe_capacity = source.getStoredCount() + 10;
-    recipes         = new Recipe[recipe_capacity];
-    stored_recipes  = 0;
-    for (int i = 0; i < source.getStoredCount(); i++)
-        recipes[stored_recipes++] = source.getRecipeAt(i);
-}
-void RecipeRanker::selectRecipesToRank() {
-    selectionCount = 0;
-    int howMany;
-    cout << "\nHow many recipes to compare? (2 or 3): ";
-    cin >> howMany;
-    cin.ignore();
-
-    if (howMany < 2 || howMany > 3) {
-        cout << "Please enter 2 or 3.\n";
-        return;
-    }
-    if (howMany > stored_recipes) {
-        cout << "Not enough recipes stored.\n";
-        return;
-    }
-
-    cout << "\nAvailable recipes:\n";
-    for (int i = 0; i < stored_recipes; i++) {
-        cout << "  " << (i + 1) << ". " << recipes[i].getName() << "\n";
-    }
-
-    for (int i = 0; i < howMany; i++) {
-        int idx;
-        cout << "Enter number of recipe " << (i + 1) << " (1-" << stored_recipes << "): ";
-        cin >> idx;
-        cin.ignore();
-        // Validate (1-based input)
-        if (idx < 1 || idx > stored_recipes) {
-            cout << "Invalid number. Try again.\n";
-            i--;
-            continue;
-        }
-        idx--;  // convert to 0-based index
-        // Check for duplicates
-        bool duplicate = false;
-        for (int j = 0; j < selectionCount; j++) {
-            if (selectedRecipe[j] == idx) {
-                cout << "Already selected. Pick a different one.\n";
-                duplicate = true;
-                break;
-            }
-        }
-        if (duplicate) { i--; continue; }
-        selectedRecipe[selectionCount++] = idx;
-    }
-}
-
-void RecipeRanker::rankAndDisplay() {
-    if (selectionCount < 2) {
-        cout << "Select recipes first.\n";
-        return;
-    }
-    int* ranked = new int[selectionCount];
-    for (int i = 0; i < selectionCount; i++)
-        ranked[i] = selectedRecipe[i];
-
-    // Selection sort — find the minimum score each pass
-    for (int i = 0; i < selectionCount - 1; i++) {
-        int bestPos = i;
-        for (int j = i + 1; j < selectionCount; j++) {
-            if (computeScore(ranked[j]) < computeScore(ranked[bestPos]))
-                bestPos = j;
-        }
-        // Swap
-        int temp = ranked[i];
-        ranked[i] = ranked[bestPos];
-        ranked[bestPos] = temp;
-    }
-
-    cout << "\n======= RANKING (Best to Worst) =======\n";
-    for (int i = 0; i < selectionCount; i++) {
-        int idx = ranked[i];
-        cout << "  Rank #" << (i + 1) << ": " << recipes[idx].getName() << "\n";
-    }
-
-    cout << " Best recommendation: " << recipes[ranked[0]] << " <<<\n";
-    cout << "=======================================\n";
-
-    delete[] ranked;
-}
-
-void Menu(AlphabeticListing& al, RecipeRanker& rank) {
-    int choice;
-    do {
-        cout << "\n===== Recipe Manager =====\n";
-        cout << "  Total recipes : " << Recipe::numrecipes << "\n";
-        cout << "  1. Add recipe\n";
-        cout << "  2. Display all recipes (A-Z)\n";
-        cout << "  3. Rank recipes\n";
-        cout << "  4. Search by ingredients\n";
-        cout << "  5. Search by name\n";
-        cout << "  0. Exit\n";
-        cout << "Choice: ";
-        if (!(cin >> choice)) {
-            cin.clear(); cin.ignore(10000, '\n');
-            cout << "  Invalid input. Please enter a number.\n";
-            continue;
-        }
-        cin.ignore();
-
-        switch (choice) {
-            case 1:
-                al.addRecipe();
-                rank.syncFrom(al);
-                al.saveToFile("recipes.txt");
-                break;
-
-            case 2:
-                al.display();
-                break;
-
-            case 3:
-                rank.runRanking();
-                break;
-
-            case 4:
-                al.searchByIngredients();
-                break;
-            case 5: {
-                cout << "  Enter name (or part of name) to search: ";
-
-                string query;
-                getline(cin, query);
-                al.searchByName(query);
-                break;
-            }
-            case 0:
-                cout << "Goodbye!\n";
-                break;
-            default:
-                cout << "  Invalid choice.\n";
-        }
-    } while (choice != 0);
-}
-
 void RecipeManager::saveToFile(const string& filename) {
     ofstream file(filename);
     if (!file.is_open()) {
@@ -656,7 +502,7 @@ bool RecipeManager::loadFromFile(const string& filename) {
 
         for (int j = 0; j < ingCount; j++) {
             if (!getline(file, line)) break;
-            // Parse "name|quantity|unit"
+                 // Parse "name|quantity|unit"
             size_t p1 = line.find('|');
             if (p1 == string::npos) continue;
             size_t p2 = line.find('|', p1 + 1);
@@ -667,7 +513,6 @@ bool RecipeManager::loadFromFile(const string& filename) {
             string iType = line.substr(p2 + 1);
             recipes[idx].setIngredient(iName, iQty, iType);
         }
-
         // Read instructions line (may be empty string for programmatic recipes)
         if (getline(file, instructions))
             recipes[idx].instructions = instructions; // friend class access
@@ -677,7 +522,6 @@ bool RecipeManager::loadFromFile(const string& filename) {
     file.close();
     return true;
 }
-
 void RecipeManager::sortAlphabetically() {
     for (int i = 0; i < stored_recipes - 1; i++) {
         int minIdx = i;
@@ -692,7 +536,6 @@ void RecipeManager::sortAlphabetically() {
         }
     }
 }
-
 void RecipeManager::HardcodeRecipes() {
     addRecipe("Spaghetti Aglio e Olio","Boil spaghetti in salted water until al dente. In a pan, heat olive oil, sauté sliced garlic until golden. Add chili flakes. Toss cooked spaghetti in the oil mixture. Add salt and parsley. Serve hot.",25);
     recipes[stored_recipes-1].setIngredient("Spaghetti", 200, "grams");
@@ -781,4 +624,184 @@ void RecipeManager::HardcodeRecipes() {
     recipes[stored_recipes-1].setIngredient("Sugar",1,"tbsp");
     recipes[stored_recipes-1].setIngredient("Salt",1,"tsp");
     recipes[stored_recipes-1].setIngredient("Butter",2,"tbsp");
+}
+
+//===============================================
+//Alphabetic Listing out of line function definitions
+//==============================================
+void AlphabeticListing::display() {
+    if (stored_recipes == 0) { cout << "No recipes stored.\n"; return; }
+
+    bool* visited = new bool[stored_recipes];
+    for (int i = 0; i < stored_recipes; i++) visited[i] = false;        //visited refers to recipes that have been printed
+
+    cout << "\n========== All Recipes (A-Z) ==========\n";
+    for (int i = 0; i < stored_recipes; i++) {
+        int minIdx = -1;
+        for (int k = 0; k < stored_recipes; k++) {
+            if (!visited[k]) {        //if recipe hasnt been printed yet, compare with other recipes
+                if (minIdx == -1 ||
+                    recipes[k].getName() < recipes[minIdx].getName())        //< operator checks alphabetical order like a dictionary
+                    minIdx = k;
+            }
+        }
+        cout << (i + 1) << ". " << recipes[minIdx];
+        visited[minIdx] = true;
+    }
+    cout << "========================================\n";
+    delete[] visited;
+}
+
+void AlphabeticListing::addRecipe() {
+    RecipeManager::addRecipe();
+    sortAlphabetically();
+}
+void AlphabeticListing::addRecipe(string name, string instructions, int time) {
+    RecipeManager::addRecipe(name, instructions, time);
+    sortAlphabetically();
+}
+
+//===============================================
+//Recipe Ranker out of line function definitions
+//==============================================
+void RecipeRanker::syncFrom(RecipeManager& source) {
+    delete[] recipes;
+    recipe_capacity = source.getStoredCount() + 10;
+    recipes         = new Recipe[recipe_capacity];
+    stored_recipes  = 0;
+    for (int i = 0; i < source.getStoredCount(); i++)
+        recipes[stored_recipes++] = source.getRecipeAt(i);
+}
+void RecipeRanker::selectRecipesToRank() {
+    selectionCount = 0;
+    int howMany;
+    cout << "\nHow many recipes to compare? (2 or 3): ";
+    cin >> howMany;
+    cin.ignore();
+
+    if (howMany < 2 || howMany > 3) {
+        cout << "Please enter 2 or 3.\n";
+        return;
+    }
+    if (howMany > stored_recipes) {
+        cout << "Not enough recipes stored.\n";
+        return;
+    }
+
+    cout << "\nAvailable recipes:\n";
+    for (int i = 0; i < stored_recipes; i++) {
+        cout << "  " << (i + 1) << ". " << recipes[i].getName() << "\n";
+    }
+
+    for (int i = 0; i < howMany; i++) {
+        int idx;
+        cout << "Enter number of recipe " << (i + 1) << " (1-" << stored_recipes << "): ";
+        cin >> idx;
+        cin.ignore();
+        if (idx < 1 || idx > stored_recipes) {        // Validate that index entered is not less than 1
+            cout << "Invalid number. Try again.\n";
+            i--;
+            continue;
+        }
+        idx--;  // convert to 0-based index
+        // Check for duplicates
+        bool duplicate = false;
+        for (int j = 0; j < selectionCount; j++) {
+            if (selectedRecipe[j] == idx) {
+                cout << "Already selected. Pick a different one.\n";
+                duplicate = true;
+                break;
+            }
+        }
+        if (duplicate) { i--; continue; }
+        selectedRecipe[selectionCount++] = idx;
+    }
+}
+
+void RecipeRanker::rankAndDisplay() {
+    if (selectionCount < 2) {
+        cout << "Select recipes first.\n";
+        return;
+    }
+    int* ranked = new int[selectionCount];
+    for (int i = 0; i < selectionCount; i++)
+        ranked[i] = selectedRecipe[i];
+    for (int i = 0; i < selectionCount - 1; i++) {        // Selection sort — find the minimum score each pass
+        int bestPos = i;
+        for (int j = i + 1; j < selectionCount; j++) {
+            if (computeScore(ranked[j]) < computeScore(ranked[bestPos]))
+                bestPos = j;
+        }
+
+        int temp = ranked[i];        // Swap
+        ranked[i] = ranked[bestPos];
+        ranked[bestPos] = temp;
+    }
+
+    cout << "\n======= RANKING (Best to Worst) =======\n";
+    for (int i = 0; i < selectionCount; i++) {
+        int idx = ranked[i];
+        cout << "  Rank #" << (i + 1) << ": " << recipes[idx].getName() << "\n";
+    }
+
+    cout << " Best recommendation: " << recipes[ranked[0]] << " <<<\n";
+    cout << "=======================================\n";
+
+    delete[] ranked;
+}
+//===============================================
+//Menu Function Definition
+//==============================================
+void Menu(AlphabeticListing& al, RecipeRanker& rank) {
+    int choice;
+    do {
+        cout << "\n===== Recipe Manager =====\n";
+        cout << "  Total recipes : " << Recipe::numrecipes << "\n";
+        cout << "  1. Add recipe\n";
+        cout << "  2. Display all recipes (A-Z)\n";
+        cout << "  3. Rank recipes\n";
+        cout << "  4. Search by ingredients\n";
+        cout << "  5. Search by name\n";
+        cout << "  0. Exit\n";
+        cout << "Choice: ";
+        if (!(cin >> choice)) {
+            cin.clear(); cin.ignore(10000, '\n');
+            cout << "  Invalid input. Please enter a number.\n";
+            continue;
+        }
+        cin.ignore();
+
+        switch (choice) {
+            case 1:
+                al.addRecipe();
+                rank.syncFrom(al);
+                al.saveToFile("recipes.txt");
+                break;
+
+            case 2:
+                al.display();
+                break;
+
+            case 3:
+                rank.runRanking();
+                break;
+
+            case 4:
+                al.searchByIngredients();
+                break;
+            case 5: {
+                cout << "  Enter name (or part of name) to search: ";
+
+                string query;
+                getline(cin, query);
+                al.searchByName(query);
+                break;
+            }
+            case 0:
+                cout << "Goodbye!\n";
+                break;
+            default:
+                cout << "  Invalid choice.\n";
+        }
+    } while (choice != 0);
 }
